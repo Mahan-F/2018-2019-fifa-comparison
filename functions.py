@@ -17,20 +17,44 @@ data18.drop(columns, inplace=True, axis=1)
 data18['Preferred Positions'] = data18['Preferred Positions'].str.strip()
 
 
+def check_id(row):
+    id18 = row['ID']
+
+    id19 = data19.loc[data19['ID'] == id18]
+
+    if id19.size == 0:
+        return True
+    return False
+
+
 def overall():
-    result = pd.DataFrame()
+    def compare_overall(row):
+        overall2018 = row['Overall']
 
-    for i in range(MAX):
-        overall2018 = data18.loc[i]['Overall']
-
-        new_stats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Overall']
+        new_stats = data19.loc[data19['ID'] == row['ID']]['Overall']
+        row = pd.Series({'Name': row['Name'], 'Overall 2018': overall2018})
         if new_stats.size > 0:
-            overall2019 = new_stats.tolist()[0]
+            row['Overall 2019'] = new_stats.tolist()[0]
+            row['Overall Difference'] = new_stats.tolist()[0] - overall2018
+            return row
         else:
-            overall2019 = np.NaN
+            row['Overall 2019'] = np.NaN
+            row['Overall Difference'] = np.NaN
+            return row
 
-        difference_overall = overall2019 - overall2018
-        result = result.append({'Player Name': data18.loc[i]['Name'], '2018': overall2018, '2019': overall2019, 'Difference': difference_overall}, ignore_index=True)
+    result = pd.DataFrame(data18.apply(compare_overall, axis=1))
+    #
+    # for i in range(MAX):
+    #     overall2018 = data18.loc[i]['Overall']
+    #
+    #     new_stats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Overall']
+    #     if new_stats.size > 0:
+    #         overall2019 = new_stats.tolist()[0]
+    #     else:
+    #         overall2019 = np.NaN
+    #
+    #     difference_overall = overall2019 - overall2018
+    #     result = result.append({'Player Name': data18.loc[i]['Name'], '2018': overall2018, '2019': overall2019, 'Difference': difference_overall}, ignore_index=True)
 
     print(result)
 
@@ -245,19 +269,9 @@ def top_10():
     return in_both, len(in_both)
 
 
-def check_id(row):
-    id18 = row['ID']
-
-    id19 = data19.loc[data19['ID'] == id18]
-
-    if id19.size == 0:
-        return True
-    return False
-
-
 def retired():
     """
-    What players that were playing in 2018 did not play in 2019 (retired)
+    What players that were playing in 2018 did not play in 2019 (retired?)
     :return: List of retired playered with their positions
     """
     import time
