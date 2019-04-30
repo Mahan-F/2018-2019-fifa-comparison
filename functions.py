@@ -31,7 +31,7 @@ def check_id(row):
         return True
     return False
 
-
+# Done
 def overall(id =None):
     def compare_overall(row):
         overall2018 = row['Overall']
@@ -129,7 +129,7 @@ def oldest():
     print('Oldest Player of 2019 is ' + oldest19.iloc[0]['Name'] + ' with the age of ' +
           str(oldest19.iloc[0]['Age']) + ' with the position: ' + oldest19.iloc[0]['Position'])
 
-
+# Done
 def value_change():
     """
     Print a list of top 10 players with the most increase/decrease in their value
@@ -181,7 +181,7 @@ def value_change():
     print('List of players with the most decrease in value: ')
     print(most_decrease)
 
-
+# Done
 def age():
     """
     Print a list of top 10 players with the most overall rating difference along with their age
@@ -216,54 +216,83 @@ def age():
     print('List of players with the most overall rating along with their age: ')
     print(highest_overall)
 
-
+# Done
 def nationality_overall():
+    """
+    Prints a list of all countries with their overall average difference
+    """
     print('Which nationality has the best overall average?')
-    print('The best overall average  for each Nation on 2018 are:')
-    DataFrame = pd.DataFrame()
-    for i in range(MAX):
-        nationality2018 = data18.loc[i]['Nationality']
 
-        DataFrame = DataFrame.append({'Nationality': data18.loc[i]['Nationality'], 'Overall': data18.loc[i]['Overall']}, ignore_index=True)
+    def link_values(row):
 
+        value18 = row[['Nationality', 'Overall']]
 
-    print(DataFrame.groupby(['Nationality'], as_index=False).mean())
+        new_stats = data19.loc[data19['ID'] == row['ID']]['Overall']
 
-    print('The best overall average  for each Nation on 2019 are:')
-    DataFrame = pd.DataFrame()
-    for i in range(MAX):
-
-        nationality2019 = -1
-        newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Nationality']
-        if newStats.size > 0:
-            nationality2019 = newStats.tolist()[0]
+        row = pd.Series({'Nationality': row['Nationality'], 'Overall 2018': value18['Overall']})
+        if new_stats.size > 0:
+            new_stats = new_stats.values
+            row['Overall 2019'] = new_stats[0]
+            row['Overall Difference'] = new_stats[0] - value18['Overall']
+            return row
         else:
-            nationality2019 = np.NaN
+            row['Overall 2019'] = np.NaN
+            row['Overall Difference'] = np.NaN
+            return row
 
-        DataFrame = DataFrame.append({'Nationality': data19.loc[i]['Nationality'], 'Overall': data19.loc[i]['Overall']}, ignore_index=True)
+    result = pd.DataFrame(data18.apply(link_values, axis=1))
+    result = result.dropna(axis='rows')
 
-    print(DataFrame.groupby(['Nationality'], as_index=False).mean())
+    result = result.groupby('Nationality').mean()
+    result = result.sort_values(by=['Overall Difference'], ascending=False)
 
+    print(result)
 
+# Done
 def potential_to_actual():
     print('Is the potential of the 2018 dataset correspond to the overall of the 2019 dataset?')
 
-    DataFrame = pd.DataFrame()
-    for i in range(MAX):
+    def link_values(row):
 
-        potential2018 = data18.loc[i]['Potential']
+        value18 = row['Potential']
 
-        overall2019 = -1
-        newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Overall']
-        if newStats.size > 0:
-            overall2019 = newStats.tolist()[0]
+        new_stats = data19.loc[data19['ID'] == row['ID']]['Overall']
+
+        row = pd.Series({'Name': row['Name']})
+        if new_stats.size > 0:
+            new_stats = new_stats.values
+            row['Potential was correct'] = value18 == new_stats[0]
+            return row
         else:
-            overall2019 = np.NaN
+            row['Potential was correct'] = np.NaN
+            return row
 
-        differencePotential = overall2019 - potential2018
-        DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], 'Potential 2018': potential2018, 'Overall 2019': overall2019, 'Difference': differencePotential}, ignore_index=True)
+    result = pd.DataFrame(data18.apply(link_values, axis=1))
+    result = result.dropna(axis='rows')
 
-    print(DataFrame)
+    result = result.sort_values(by=['Name'], ascending=True)
+
+    print(result)
+
+    correct = result.loc[result['Potential was correct'] == True]
+    correct_percent = (len(correct.index) / len(result.index)) * 100
+    print(str("%.2f" % correct_percent) + '% of the potential predictions were correct.')
+    # DataFrame = pd.DataFrame()
+    # for i in range(MAX):
+    #
+    #     potential2018 = data18.loc[i]['Potential']
+    #
+    #     overall2019 = -1
+    #     newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Overall']
+    #     if newStats.size > 0:
+    #         overall2019 = newStats.tolist()[0]
+    #     else:
+    #         overall2019 = np.NaN
+    #
+    #     differencePotential = overall2019 - potential2018
+    #     DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], 'Potential 2018': potential2018, 'Overall 2019': overall2019, 'Difference': differencePotential}, ignore_index=True)
+    #
+    # print(DataFrame)
 
 
 def over_30():
