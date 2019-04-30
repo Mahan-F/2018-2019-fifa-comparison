@@ -13,8 +13,13 @@ SAMPLE = 150
 columns = ['Photo', 'Flag', 'Club Logo']
 data18.drop(columns, inplace=True, axis=1)
 
-# Strip trailing whitespace from end of preferred Positions
-data18['Preferred Positions'] = data18['Preferred Positions'].str.strip()
+# Renaming columns to match
+data18.rename(columns={'Preferred Positions': 'Position'}, inplace=True)
+
+# Strip trailing whitespace from end of Positions
+data18['Position'] = data18['Position'].str.strip()
+
+# print(list(data18.columns.values))
 
 
 def check_id(row):
@@ -27,7 +32,7 @@ def check_id(row):
     return False
 
 
-def overall():
+def overall(id =None):
     def compare_overall(row):
         overall2018 = row['Overall']
 
@@ -42,21 +47,13 @@ def overall():
             row['Overall Difference'] = np.NaN
             return row
 
-    result = pd.DataFrame(data18.apply(compare_overall, axis=1))
-    #
-    # for i in range(MAX):
-    #     overall2018 = data18.loc[i]['Overall']
-    #
-    #     new_stats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Overall']
-    #     if new_stats.size > 0:
-    #         overall2019 = new_stats.tolist()[0]
-    #     else:
-    #         overall2019 = np.NaN
-    #
-    #     difference_overall = overall2019 - overall2018
-    #     result = result.append({'Player Name': data18.loc[i]['Name'], '2018': overall2018, '2019': overall2019, 'Difference': difference_overall}, ignore_index=True)
+    if id:
+        player = data18[data18['ID'] == id]
+        result = pd.DataFrame(player.apply(compare_overall, axis=1))
+    else:
+        result = pd.DataFrame(data18.apply(compare_overall, axis=1))
 
-    print(result)
+    return result
 
 
 def acceleration():
@@ -123,58 +120,101 @@ def oldest():
     :return: void
     """
     print('In which position are the oldest players (eg. Goalkeepers)?')
-    result = pd.DataFrame()
 
-    for i in range(MAX):
-        result = result.append({
-            'Player Name': data18.loc[i]['Name'],
-            'Position': data18.loc[i]['Preferred Positions'],
-            'Age': data18.loc[i]['Age']
-        }, ignore_index=True)
+    oldest18 = data18.loc[data18['Age'] == data18['Age'].max()]
+    print('Oldest Player of 2018 is ' + oldest18.iloc[0]['Name'] + ' with the age of ' + str(oldest18.iloc[0]['Age']) +
+          ' with the position: ' + oldest18.iloc[0]['Position'])
 
-    oldest18 = result.loc[result['Age'] == result['Age'].max()].values[0]
-    print('Oldest Player of 2018 is ' + oldest18[1] + ' with the age of ' + str(oldest18[0]) +
-          ' with the position: ' + oldest18[2])
-
-    result = pd.DataFrame()
-
-    for i in range(MAX):
-        result = result.append({
-            'Player Name': data19.loc[i]['Name'],
-            'Position': data19.loc[i]['Position'],
-            'Age': data19.loc[i]['Age']
-        }, ignore_index=True)
-
-    oldest19 = result.loc[result['Age'] == result['Age'].max()].values[0]
-    print('Oldest Player of 2019 is ' + oldest19[1] + ' with the age of ' +
-          str(oldest19[0]) + ' with the position: ' + oldest19[2])
+    oldest19 = data19.loc[data19['Age'] == data19['Age'].max()]
+    print('Oldest Player of 2019 is ' + oldest19.iloc[0]['Name'] + ' with the age of ' +
+          str(oldest19.iloc[0]['Age']) + ' with the position: ' + oldest19.iloc[0]['Position'])
 
 
 def value_change():
-    print('Which players had the most change in value  and why? is it based on their overall improvement?')
+    """
+    Print a list of top 10 players with the most increase/decrease in their value
+    """
+    print('Which players had the most change in value and why? is it based on their overall improvement?')
 
-    DataFrame = pd.DataFrame()
-    data19['Value'] = data19['Value'].map(lambda x: x.lstrip('€').rstrip('MK'))
-    data18['Value'] = data18['Value'].map(lambda x: x.lstrip('€').rstrip('MK'))
+    data19['Value'] = data19['Value'].map(lambda x: x.lstrip('€'))
+    data18['Value'] = data18['Value'].map(lambda x: x.lstrip('€'))
 
+    data18['Value'] = (data18['Value'].replace(r'[KM]+$', '', regex=True).astype(float) *
+                       data18['Value'].str.extract(r'[\d\.]+([KM]+)', expand=False).fillna(1)
+                       .replace(['K', 'M'], [10 ** 3, 10 ** 6]).astype(int))
 
-    for i in range(MAX):
-        overall2018 = float(data18.loc[i]['Value'])
+    data19['Value'] = (data19['Value'].replace(r'[KM]+$', '', regex=True).astype(float) *
+                       data19['Value'].str.extract(r'[\d\.]+([KM]+)', expand=False).fillna(1)
+                       .replace(['K', 'M'], [10 ** 3, 10 ** 6]).astype(int))
 
-        overall2019 = -1
-        newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Value']
-        if newStats.size > 0:
-            overall2019 = newStats.tolist()[0]
+    def link_values(row):
+
+        value18 = row[['Value', 'Overall']]
+
+        new_stats = data19.loc[data19['ID'] == row['ID']]
+        new_stats = new_stats[['Value', 'Overall']]
+
+        row = pd.Series({'ID': row['ID'], 'Name': row['Name'], 'Value 2018': value18['Value'], 'Overall 2018': value18['Overall']})
+        if new_stats.size > 0:
+            new_stats = new_stats.values[0]
+            row['Value 2019'] = new_stats[0]
+            row['Overall 2019'] = new_stats[1]
+            row['Overall Difference'] = new_stats[1] - value18['Overall']
+            return row
         else:
-            overall2019 = np.NaN
+            row['Value 2019'] = np.NaN
+            row['Overall 2019'] = np.NaN
+            row['Overall Difference'] = np.NaN
+            return row
 
-        differenceOverAll = float(overall2019) - overall2018
-        DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], '2018': overall2018, '2019': overall2019, 'Value': differenceOverAll}, ignore_index=True)
+    result = pd.DataFrame(data18.apply(link_values, axis=1))
+    result = result.dropna(axis='rows')
 
-    print('Player with most increase on his value:')
-    print(DataFrame[['Player Name', 'Value']][DataFrame['Value'] == DataFrame['Value'].max()])
-    print('Player with most decrease on his value:')
-    print(DataFrame[['Player Name', 'Value']][DataFrame['Value'] == DataFrame['Value'].min()])
+    change = pd.DataFrame({'ID': result['ID'], 'Name': result['Name'], 'Value Change': result['Value 2019'] - result['Value 2018'], 'Overall Change': result['Overall Difference']})
+
+    change = change.sort_values(by=['Value Change'], ascending=False)
+    most_increase = change.head(10)
+    most_decrease = change.tail(10).iloc[::-1]
+
+    print('List of players with the most increase in value: ')
+    print(most_increase)
+    print('List of players with the most decrease in value: ')
+    print(most_decrease)
+
+
+def age():
+    """
+    Print a list of top 10 players with the most overall rating difference along with their age
+    :return:
+    """
+    print('Is the overall improvement based on age?')
+
+    def link_values(row):
+
+        value18 = row['Overall']
+
+        new_stats = data19.loc[data19['ID'] == row['ID']]
+        new_stats = new_stats[['Age', 'Overall']]
+
+        row = pd.Series({'Name': row['Name']})
+        if new_stats.size > 0:
+            new_stats = new_stats.values[0]
+            row['Age'] = new_stats[0]
+            row['Overall Difference'] = new_stats[1] - value18
+            return row
+        else:
+            row['Age'] = np.NaN
+            row['Overall Difference'] = np.NaN
+            return row
+
+    result = pd.DataFrame(data18.apply(link_values, axis=1))
+    result = result.dropna(axis='rows')
+
+    result = result.sort_values(by=['Overall Difference'], ascending=False)
+    highest_overall = result.head(10)
+
+    print('List of players with the most overall rating along with their age: ')
+    print(highest_overall)
 
 
 def nationality_overall():
