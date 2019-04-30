@@ -113,7 +113,7 @@ def finishing():
     print(DataFrame[['Player Name', 'Finishing Improv.']][
                   DataFrame['Finishing Improv.'] == DataFrame['Finishing Improv.'].max()])
 
-
+#Done
 def oldest():
     """
     Returns the oldest player of each year along with their age and position
@@ -277,45 +277,42 @@ def potential_to_actual():
     correct = result.loc[result['Potential was correct'] == True]
     correct_percent = (len(correct.index) / len(result.index)) * 100
     print(str("%.2f" % correct_percent) + '% of the potential predictions were correct.')
-    # DataFrame = pd.DataFrame()
-    # for i in range(MAX):
-    #
-    #     potential2018 = data18.loc[i]['Potential']
-    #
-    #     overall2019 = -1
-    #     newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Overall']
-    #     if newStats.size > 0:
-    #         overall2019 = newStats.tolist()[0]
-    #     else:
-    #         overall2019 = np.NaN
-    #
-    #     differencePotential = overall2019 - potential2018
-    #     DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], 'Potential 2018': potential2018, 'Overall 2019': overall2019, 'Difference': differencePotential}, ignore_index=True)
-    #
-    # print(DataFrame)
 
-
+# Done
 def over_30():
     print('Do players with age over 30 have a decrement on their overall?')
 
-    DataFrame = pd.DataFrame()
-    for i in range(MAX):
+    def link_values(row):
 
-        overall2018 = float(data18.loc[i]['Overall'])
+        value18 = row['Overall']
 
-        overall2019 = -1
-        newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Overall']
-        if newStats.size > 0:
-            overall2019 = newStats.tolist()[0]
+        new_stats = data19.loc[data19['ID'] == row['ID']]
+        new_stats = new_stats[['Overall', 'Age']]
+
+        row = pd.Series({'Name': row['Name']})
+        if new_stats.size > 0:
+            new_stats = new_stats.values[0]
+            row['Age'] = new_stats[1]
+            row['Overall Difference'] = new_stats[0] - value18
+            return row
         else:
-            overall2019 = np.NaN
+            row['Age'] = np.NaN
+            row['Overall Difference'] = np.NaN
+            return row
 
-        differencePotential = float(overall2019) - overall2018
-        DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], 'Age': data18.loc[i]['Age'], 'Overall 2018': overall2018, 'Overall 2019': overall2019, 'Difference': differencePotential}, ignore_index=True)
+    result = data18.where(data18['Age'] >= 30)
+    result = pd.DataFrame(result.apply(link_values, axis=1))
+    result = result.dropna(axis='rows')
 
-    print(DataFrame[DataFrame.Age > 30])
+    result = result.sort_values(by=['Name'], ascending=True)
 
+    had_decrease = result.loc[result['Overall Difference'] < 0]
+    decrease_percent = (len(had_decrease.index) / len(result.index)) * 100
 
+    print(result)
+    print(str("%.2f" % decrease_percent) + '% of the players over the age of 30 had a decrease in their overall rating.')
+
+# Done
 def top_10():
     """
     Compares the top 10 players of the 2 years to see what players appeared in both
@@ -335,20 +332,68 @@ def top_10():
         if top18.iloc[i]['Player Name'] in top19['Player Name'].values:
             in_both.append(top18.iloc[i]['Player Name'])
 
-    return in_both, len(in_both)
+    print(in_both)
+    print(str(len(in_both)) + ' players appeared on the top 10 charts of both years.')
 
+# Done
+def club_change():
+    print('Does the change of club affect the value and overall rating of a player?')
 
+    def link_values(row):
+
+        value18 = row[['Club', 'Overall', 'Value']]
+
+        new_stats = data19.loc[data19['ID'] == row['ID']]
+        new_stats = new_stats[['Club', 'Overall', 'Value']]
+
+        row = pd.Series({'Name': row['Name']})
+        if new_stats.size > 0:
+            new_stats = new_stats.values[0]
+            row['Club Changed'] = new_stats[0] != value18['Club']
+            row['Overall Increased'] = new_stats[1] > value18['Overall']
+            row['Value Increased'] = new_stats[2] > value18['Value']
+            return row
+        else:
+            row['Club Changed'] = np.NaN
+            row['Overall Increased'] = np.NaN
+            row['Value Increased'] = np.NaN
+            return row
+
+    result = pd.DataFrame(data18.apply(link_values, axis=1))
+
+    result = result.where(result['Club Changed'] == True)
+    result = result.dropna(axis='rows')
+    result = result.sort_values(by=['Name'], ascending=True)
+    print(result)
+
+    increased_overall = result.loc[result['Overall Increased'] == True]
+    increased_value = result.loc[result['Value Increased'] == True]
+
+    increased_overall_percent = (len(increased_overall.index) / len(result.index)) * 100
+    increased_value_percent = (len(increased_value.index) / len(result.index)) * 100
+    #
+    print(str("%.2f" % increased_overall_percent) + '% of the players who changed club had an increase in overall rating.')
+    print(str("%.2f" % increased_value_percent) + '% of the players who changed club had an increase in value.')
+
+# Done
 def retired():
     """
     What players that were playing in 2018 did not play in 2019 (retired?)
     :return: List of retired playered with their positions
     """
+    print('All the players that have retired in 2019.')
+
     import time
     start = time.time()
 
     # Took 13.61 seconds
     result = data18.apply(check_id, axis=1)
-    print(data18[result])
+    result = data18[result].sort_values(by=['Position'], ascending=True)
+    print(result[['Name', 'Age', 'Position']])
+
+    result = result.groupby('Position').mean()
+    print('List of all positions with the average age of retired players from the position')
+    print(result['Age'])
 
     # Took 117.3 seconds
     # for i in range(MAX):
