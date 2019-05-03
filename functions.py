@@ -17,11 +17,7 @@ column_dtypes = {
 data18 = pd.read_csv("2018.csv", dtype=column_dtypes, usecols=lambda column: column not in columnsNotIncluded, low_memory=False)
 data19 = pd.read_csv("2019.csv", dtype=column_dtypes, usecols=lambda column: column not in columnsNotIncluded, low_memory=False)
 
-data18.set_index('ID', inplace=True)
-data19.set_index('ID', inplace=True)
-
 MAX = len(data18.index)
-SAMPLE = 150
 
 # Renaming columns to match
 data18.rename(columns={'Preferred Positions': 'Position'}, inplace=True)
@@ -29,6 +25,7 @@ data18.rename(columns={'Preferred Positions': 'Position'}, inplace=True)
 # Strip trailing whitespace from end of Positions
 data18['Position'] = data18['Position'].str.strip()
 
+# Convert the Value columns to only numbers so they can be compared
 data19['Value'] = data19['Value'].map(lambda x: x.lstrip('€'))
 data18['Value'] = data18['Value'].map(lambda x: x.lstrip('€'))
 
@@ -40,9 +37,8 @@ data19['Value'] = (data19['Value'].replace(r'[KM]+$', '', regex=True).astype(flo
                    data19['Value'].str.extract(r'[\d\.]+([KM]+)', expand=False).fillna(1)
                    .replace(['K', 'M'], [10 ** 3, 10 ** 6]).astype(int))
 
-data_joined = data18.join(data19, how='left', lsuffix="_18", rsuffix="_19")
-# print(list(data_new.columns.values))
-# print(data_new[['Name_19', 'Name_18', 'Age_19', 'Age_18']].head())
+# Join the 2 datasets together for fast comparisons
+data_joined = data18.set_index('ID').join(data19.set_index('ID'), how='left', lsuffix="_18", rsuffix="_19")
 
 
 def check_id(row):
