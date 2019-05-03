@@ -270,37 +270,24 @@ def nationality_overall():
 
     print(result)
 
-# Done
+
 def potential_to_actual():
+    """
+        Times:
+            Old way with .apply()               = 28.260369539260864
+            New way with the joined dataframe   = 0.029920101165771484
+    """
     print('Is the potential of the 2018 dataset correspond to the overall of the 2019 dataset?')
 
-    def link_values(row):
-
-        value18 = row['Potential']
-
-        new_stats = data19.loc[data19['ID'] == row['ID']]['Overall']
-
-        row = pd.Series({'Name': row['Name']})
-        if new_stats.size > 0:
-            new_stats = new_stats.values
-            row['Potential was correct'] = value18 == new_stats[0]
-            return row
-        else:
-            row['Potential was correct'] = np.NaN
-            return row
-
-    result = pd.DataFrame(data18.apply(link_values, axis=1))
-    result = result.dropna(axis='rows')
-
-    result = result.sort_values(by=['Name'], ascending=True)
-
-    print(result)
+    result = data_joined.loc[(data_joined['Name_19'].isnull() != True)] # All players that are not retired
+    result['Potential was correct'] = result['Potential_18'] == result['Overall_19']
+    print(result[['Name_19', 'Potential was correct']].head(), '\n')
 
     correct = result.loc[result['Potential was correct'] == True]
     correct_percent = (len(correct.index) / len(result.index)) * 100
     print(str("%.2f" % correct_percent) + '% of the potential predictions were correct.')
 
-# Done
+
 def over_30():
     """
         Times:
