@@ -216,42 +216,6 @@ def club_change():
     print(str("%.2f" % increased_overall_percent) + '% of the players who changed club had an increase in overall rating.')
     print(str("%.2f" % increased_value_percent) + '% of the players who changed club had an increase in value.')
 
-    # def link_values(row):
-    #
-    #     value18 = row[['Club', 'Overall', 'Value']]
-    #
-    #     new_stats = data19.loc[data19['ID'] == row['ID']]
-    #     new_stats = new_stats[['Club', 'Overall', 'Value']]
-    #
-    #     row = pd.Series({'Name': row['Name']})
-    #     if new_stats.size > 0:
-    #         new_stats = new_stats.values[0]
-    #         row['Club Changed'] = new_stats[0] != value18['Club']
-    #         row['Overall Increased'] = new_stats[1] > value18['Overall']
-    #         row['Value Increased'] = new_stats[2] > value18['Value']
-    #         return row
-    #     else:
-    #         row['Club Changed'] = np.NaN
-    #         row['Overall Increased'] = np.NaN
-    #         row['Value Increased'] = np.NaN
-    #         return row
-    #
-    # result = pd.DataFrame(data18.apply(link_values, axis=1))
-    #
-    # result = result.where(result['Club Changed'] == True)
-    # result = result.dropna(axis='rows')
-    # result = result.sort_values(by=['Name'], ascending=True)
-    # print(result)
-    #
-    # increased_overall = result.loc[result['Overall Increased'] == True]
-    # increased_value = result.loc[result['Value Increased'] == True]
-    #
-    # increased_overall_percent = (len(increased_overall.index) / len(result.index)) * 100
-    # increased_value_percent = (len(increased_value.index) / len(result.index)) * 100
-    #
-    # print(str("%.2f" % increased_overall_percent) + '% of the players who changed club had an increase in overall rating.')
-    # print(str("%.2f" % increased_value_percent) + '% of the players who changed club had an increase in value.')
-
 
 def retired():
     """
