@@ -1,6 +1,5 @@
-# Import pandas
-import numpy as np
 import pandas as pd
+import time
 import matplotlib.pyplot as plt
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -43,103 +42,31 @@ data19['Value'] = (data19['Value'].replace(r'[KM]+$', '', regex=True).astype(flo
 data_joined = data18.set_index('ID').join(data19.set_index('ID'), how='left', lsuffix="_18", rsuffix="_19")
 
 
-def check_id(row):
-    print(row.name)
-    id18 = row['ID']
+def overall():
+    """
+    Compare the overall score of each player from 2018 to 2019
+    Times:
+        Old way with .apply()               = 39.78967571258545
+        New way with the joined dataframe   = 0.05585455894470215
+    """
 
-    id19 = data19.loc[data19['ID'] == id18]
+    result = data_joined.loc[(data_joined['Name_19'].isnull() != True)]  # All players that are not retired
 
-    if id19.size == 0:
-        return True
-    return False
+    result['Overall Difference'] = result['Overall_19'] - result['Overall_18']
+    result = result.sort_values(by=['Overall Difference'], ascending=False)
 
-# Done
-def overall(id = None):
-    def compare_overall(row):
-        overall2018 = row['Overall']
+    most_increase = result.head(10)
+    most_decrease = result.tail(10).iloc[::-1]
 
-        new_stats = data19.loc[data19['ID'] == row['ID']]['Overall']
-        row = pd.Series({'Name': row['Name'], 'Overall 2018': overall2018})
-        if new_stats.size > 0:
-            row['Overall 2019'] = new_stats.tolist()[0]
-            row['Overall Difference'] = new_stats.tolist()[0] - overall2018
-            return row
-        else:
-            row['Overall 2019'] = np.NaN
-            row['Overall Difference'] = np.NaN
-            return row
-
-    if id:
-        player = data18[data18['ID'] == id]
-        result = pd.DataFrame(player.apply(compare_overall, axis=1))
-    else:
-        result = pd.DataFrame(data18.apply(compare_overall, axis=1))
-
-    return result
+    print('\nList of players with the most increase in Overall: ')
+    print(most_increase[['Name_19', 'Overall Difference']])
+    print('\nList of players with the most decrease in Overall: ')
+    print(most_decrease[['Name_19', 'Overall Difference']])
 
 
-def acceleration():
-    DataFrame = pd.DataFrame()
-
-    for i in range(MAX):
-
-        accel2018 = float(data18.loc[i]['Acceleration'])
-
-        accel2019 = -1
-        newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Acceleration']
-        if newStats.size > 0:
-            accel2019 = newStats.tolist()[0]
-        else:
-            accel2019 = np.NaN
-
-        maxImprove = accel2019 - accel2018
-        DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], '2018': accel2018, '2019': accel2019, 'Acceleration Improv.': maxImprove}, ignore_index=True)
-
-    print(DataFrame[['Player Name', 'Acceleration Improv.']][DataFrame['Acceleration Improv.'] == DataFrame['Acceleration Improv.'].max()])
-
-
-def agility():
-    DataFrame = pd.DataFrame()
-
-    for i in range(MAX):
-        agil2018 = float(data18.loc[i]['Agility'])
-
-        agil2019 = -1
-        newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Agility']
-        if newStats.size > 0:
-            agil2019 = newStats.tolist()[0]
-        else:
-            agil2019 = np.NaN
-
-        maxImprove = agil2019 - agil2018
-        DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], '2018': agil2018, '2019': agil2019, 'Agility Improv.': maxImprove}, ignore_index=True)
-
-    print(DataFrame[['Player Name', 'Agility Improv.']][DataFrame['Agility Improv.'] == DataFrame['Agility Improv.'].max()])
-
-
-def finishing():
-    DataFrame = pd.DataFrame()
-
-    for i in range(MAX):
-        fin2018 = float(data18.loc[i]['Finishing'])
-
-        fin2019 = -1
-        newStats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]['Finishing']
-        if newStats.size > 0:
-            fin2019 = newStats.tolist()[0]
-        else:
-            fin2019 = np.NaN
-
-        maxImprove = fin2019 - fin2018
-        DataFrame = DataFrame.append({'Player Name': data18.loc[i]['Name'], '2018': fin2018, '2019': fin2019, 'Finishing Improv.': maxImprove}, ignore_index=True)
-    print(DataFrame[['Player Name', 'Finishing Improv.']][
-                  DataFrame['Finishing Improv.'] == DataFrame['Finishing Improv.'].max()])
-
-# Done
 def oldest():
     """
     Returns the oldest player of each year along with their age and position
-    :return: void
     """
     print('In which position are the oldest players (eg. Goalkeepers)?')
 
@@ -331,12 +258,40 @@ def retired():
     What players that were playing in 2018 did not play in 2019 (retired?)
     :return: List of retired playered with their positions
     """
-    print('All the players that have retired in 2019.')
+    print('Players that have retired in 2019.')
 
     result = data_joined.loc[data_joined['Name_19'].isnull()]
-    print(result[['Name_18', 'Age_18', 'Position_18']])
+    print(result[['Name_18', 'Age_18', 'Position_18']].head())
 
-    result = result.groupby('Position_18').mean()
+    result = result.groupby('Position_18')['Age_18'].mean()
     print('\nList of all positions with the average age of retired players from the position')
-    print(result['Age_18'])
+    print(result.head())
 
+
+def execute_all():
+    start = time.time()
+
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    overall()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    oldest()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    value_change()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    age()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    nationality_overall()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    potential_to_actual()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    over_30()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    top_10()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    club_change()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+    retired()
+    print('\n\n------------------------------------------------------------------------------------------------------')
+
+    end = time.time()
+    print('time: ' + str(end - start))
