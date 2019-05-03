@@ -7,6 +7,6 @@ import functions as fn
 
 import time
 start = time.time()
-fn.club_change()
+fn.nationality_overall()
 end = time.time()
 print('time: ' + str(end - start))

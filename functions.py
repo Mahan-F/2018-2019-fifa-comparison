@@ -238,37 +238,23 @@ def age():
     print('List of players with the most overall rating along with their age: ')
     print(highest_overall)
 
-# Done
+
 def nationality_overall():
     """
     Prints a list of all countries with their overall average difference
+    Times:
+        Old way with .apply()               = 51.73658752441406
+        New way with the joined dataframe   = 0.03989005088806152
     """
     print('Which nationality has the best overall average?')
 
-    def link_values(row):
+    result = data_joined.loc[(data_joined['Name_19'].isnull() != True)]  # All players that are not retired
 
-        value18 = row[['Nationality', 'Overall']]
-
-        new_stats = data19.loc[data19['ID'] == row['ID']]['Overall']
-
-        row = pd.Series({'Nationality': row['Nationality'], 'Overall 2018': value18['Overall']})
-        if new_stats.size > 0:
-            new_stats = new_stats.values
-            row['Overall 2019'] = new_stats[0]
-            row['Overall Difference'] = new_stats[0] - value18['Overall']
-            return row
-        else:
-            row['Overall 2019'] = np.NaN
-            row['Overall Difference'] = np.NaN
-            return row
-
-    result = pd.DataFrame(data18.apply(link_values, axis=1))
-    result = result.dropna(axis='rows')
-
-    result = result.groupby('Nationality').mean()
+    result = result.groupby('Nationality_19')[['Overall_19', 'Overall_18']].mean()
+    result['Overall Difference'] = result['Overall_19'] - result['Overall_18']
     result = result.sort_values(by=['Overall Difference'], ascending=False)
 
-    print(result)
+    print(result[['Overall_18', 'Overall_19', 'Overall Difference']])
 
 
 def potential_to_actual():
