@@ -151,57 +151,29 @@ def oldest():
     print('Oldest Player of 2019 is ' + oldest19.iloc[0]['Name'] + ' with the age of ' +
           str(oldest19.iloc[0]['Age']) + ' with the position: ' + oldest19.iloc[0]['Position'])
 
-# Done
+
 def value_change():
     """
     Print a list of top 10 players with the most increase/decrease in their value
+    Times:
+        Old way with .apply()               = 74.08851599693298
+        New way with the joined dataframe   = 0.057877540588378906
     """
     print('Which players had the most change in value and why? is it based on their overall improvement?')
 
-    data19['Value'] = data19['Value'].map(lambda x: x.lstrip('€'))
-    data18['Value'] = data18['Value'].map(lambda x: x.lstrip('€'))
+    result = data_joined.loc[(data_joined['Name_19'].isnull() != True)]  # All players that are not retired
 
-    data18['Value'] = (data18['Value'].replace(r'[KM]+$', '', regex=True).astype(float) *
-                       data18['Value'].str.extract(r'[\d\.]+([KM]+)', expand=False).fillna(1)
-                       .replace(['K', 'M'], [10 ** 3, 10 ** 6]).astype(int))
+    result['Overall Difference'] = result['Overall_19'] - result['Overall_18']
+    result['Value Difference'] = result['Value_19'] - result['Value_18']
+    result = result.sort_values(by=['Value Difference'], ascending=False)
 
-    data19['Value'] = (data19['Value'].replace(r'[KM]+$', '', regex=True).astype(float) *
-                       data19['Value'].str.extract(r'[\d\.]+([KM]+)', expand=False).fillna(1)
-                       .replace(['K', 'M'], [10 ** 3, 10 ** 6]).astype(int))
+    most_increase = result.head(10)
+    most_decrease = result.tail(10).iloc[::-1]
 
-    def link_values(row):
-
-        value18 = row[['Value', 'Overall']]
-
-        new_stats = data19.loc[data19['ID'] == row['ID']]
-        new_stats = new_stats[['Value', 'Overall']]
-
-        row = pd.Series({'ID': row['ID'], 'Name': row['Name'], 'Value 2018': value18['Value'], 'Overall 2018': value18['Overall']})
-        if new_stats.size > 0:
-            new_stats = new_stats.values[0]
-            row['Value 2019'] = new_stats[0]
-            row['Overall 2019'] = new_stats[1]
-            row['Overall Difference'] = new_stats[1] - value18['Overall']
-            return row
-        else:
-            row['Value 2019'] = np.NaN
-            row['Overall 2019'] = np.NaN
-            row['Overall Difference'] = np.NaN
-            return row
-
-    result = pd.DataFrame(data18.apply(link_values, axis=1))
-    result = result.dropna(axis='rows')
-
-    change = pd.DataFrame({'ID': result['ID'], 'Name': result['Name'], 'Value Change': result['Value 2019'] - result['Value 2018'], 'Overall Change': result['Overall Difference']})
-
-    change = change.sort_values(by=['Value Change'], ascending=False)
-    most_increase = change.head(10)
-    most_decrease = change.tail(10).iloc[::-1]
-
-    print('List of players with the most increase in value: ')
-    print(most_increase)
-    print('List of players with the most decrease in value: ')
-    print(most_decrease)
+    print('\nList of players with the most increase in value: ')
+    print(most_increase[['Name_19', 'Value Difference', 'Overall Difference']])
+    print('\nList of players with the most decrease in value: ')
+    print(most_decrease[['Name_19', 'Value Difference', 'Overall Difference']])
 
 
 def age():
