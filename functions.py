@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+pd.options.mode.chained_assignment = None  # default='warn'
+
 plt.close('all')
 
 # Removing the un-needed columns
@@ -300,39 +302,23 @@ def potential_to_actual():
 
 # Done
 def over_30():
+    """
+        Times:
+            Old way with .apply()               = 49.60598850250244
+            New way with the joined dataframe   = 0.038903236389160156
+    """
     print('Do players with age over 30 have a decrement on their overall?')
 
-    def link_values(row):
+    result = data_joined.loc[(data_joined['Club_19'].isnull() != True) & (data_joined['Age_18'] > 30)]
+    result['Overall Decreased'] = result['Overall_19'] < result['Overall_18']
+    print(result[['Name_18', 'Overall Decreased']])
 
-        value18 = row['Overall']
-
-        new_stats = data19.loc[data19['ID'] == row['ID']]
-        new_stats = new_stats[['Overall', 'Age']]
-
-        row = pd.Series({'Name': row['Name']})
-        if new_stats.size > 0:
-            new_stats = new_stats.values[0]
-            row['Age'] = new_stats[1]
-            row['Overall Difference'] = new_stats[0] - value18
-            return row
-        else:
-            row['Age'] = np.NaN
-            row['Overall Difference'] = np.NaN
-            return row
-
-    result = data18.where(data18['Age'] >= 30)
-    result = pd.DataFrame(result.apply(link_values, axis=1))
-    result = result.dropna(axis='rows')
-
-    result = result.sort_values(by=['Name'], ascending=True)
-
-    had_decrease = result.loc[result['Overall Difference'] < 0]
+    had_decrease = result.loc[result['Overall Decreased'] == True]
     decrease_percent = (len(had_decrease.index) / len(result.index)) * 100
 
-    print(result)
     print(str("%.2f" % decrease_percent) + '% of the players over the age of 30 had a decrease in their overall rating.')
 
-# Done
+
 def top_10():
     """
     Compares the top 10 players of the 2 years to see what players appeared in both
@@ -355,10 +341,9 @@ def top_10():
     print(in_both)
     print(str(len(in_both)) + ' players appeared on the top 10 charts of both years.')
 
-# Done
+
 def club_change():
     print('Does the change of club affect the value and overall rating of a player?')
-    pd.options.mode.chained_assignment = None  # default='warn'
 
     result = data_joined.loc[(data_joined['Club_19'].isnull() != True) & (data_joined['Club_19'] != data_joined['Club_18'])]
     result['Overall Increased'] = result['Overall_19'] > result['Overall_18']
@@ -410,7 +395,7 @@ def club_change():
     # print(str("%.2f" % increased_overall_percent) + '% of the players who changed club had an increase in overall rating.')
     # print(str("%.2f" % increased_value_percent) + '% of the players who changed club had an increase in value.')
 
-# Done
+
 def retired():
     """
     What players that were playing in 2018 did not play in 2019 (retired?)
