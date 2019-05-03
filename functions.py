@@ -203,40 +203,25 @@ def value_change():
     print('List of players with the most decrease in value: ')
     print(most_decrease)
 
-# Done
+
 def age():
     """
     Print a list of top 10 players with the most overall rating difference along with their age
-    :return:
+    Times:
+        Old way with .apply()               = 52.20204257965088
+        New way with the joined dataframe   = 0.053879499435424805
     """
     print('Is the overall improvement based on age?')
 
-    def link_values(row):
+    result = data_joined.loc[(data_joined['Name_19'].isnull() != True)]  # All players that are not retired
 
-        value18 = row['Overall']
-
-        new_stats = data19.loc[data19['ID'] == row['ID']]
-        new_stats = new_stats[['Age', 'Overall']]
-
-        row = pd.Series({'Name': row['Name']})
-        if new_stats.size > 0:
-            new_stats = new_stats.values[0]
-            row['Age'] = new_stats[0]
-            row['Overall Difference'] = new_stats[1] - value18
-            return row
-        else:
-            row['Age'] = np.NaN
-            row['Overall Difference'] = np.NaN
-            return row
-
-    result = pd.DataFrame(data18.apply(lambda row: link_values(row), axis=1))
-    result = result.dropna(axis='rows')
-
+    result['Overall Difference'] = result['Overall_19'] - result['Overall_18']
     result = result.sort_values(by=['Overall Difference'], ascending=False)
     highest_overall = result.head(10)
 
     print('List of players with the most overall rating along with their age: ')
-    print(highest_overall)
+    print(highest_overall[['Name_19', 'Age_19', 'Overall Difference']])
+    print('\nAverage age of the fastest improving players is ', highest_overall['Age_19'].mean())
 
 
 def nationality_overall():
