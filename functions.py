@@ -1,17 +1,27 @@
 # Import pandas
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
+plt.close('all')
+
+# Removing the un-needed columns
+columnsNotIncluded = ['Unnamed: 0', 'Joined', 'Photo', 'Flag', 'Club Logo']
+column_dtypes = {
+    'Age': 'int64',
+    'Overall': 'int64',
+    'Potential': 'int64'
+}
 
 # reading csv file
-data18 = pd.read_csv("2018.csv")
-data19 = pd.read_csv("2019.csv")
+data18 = pd.read_csv("2018.csv", dtype=column_dtypes, usecols=lambda column: column not in columnsNotIncluded, low_memory=False)
+data19 = pd.read_csv("2019.csv", dtype=column_dtypes, usecols=lambda column: column not in columnsNotIncluded, low_memory=False)
+
+data18.set_index('ID', inplace=True)
+data19.set_index('ID', inplace=True)
 
 MAX = len(data18.index)
 SAMPLE = 150
-
-# Removing the un-needed columns
-columns = ['Photo', 'Flag', 'Club Logo']
-data18.drop(columns, inplace=True, axis=1)
 
 # Renaming columns to match
 data18.rename(columns={'Preferred Positions': 'Position'}, inplace=True)
@@ -19,10 +29,24 @@ data18.rename(columns={'Preferred Positions': 'Position'}, inplace=True)
 # Strip trailing whitespace from end of Positions
 data18['Position'] = data18['Position'].str.strip()
 
-# print(list(data18.columns.values))
+data19['Value'] = data19['Value'].map(lambda x: x.lstrip('€'))
+data18['Value'] = data18['Value'].map(lambda x: x.lstrip('€'))
+
+data18['Value'] = (data18['Value'].replace(r'[KM]+$', '', regex=True).astype(float) *
+                   data18['Value'].str.extract(r'[\d\.]+([KM]+)', expand=False).fillna(1)
+                   .replace(['K', 'M'], [10 ** 3, 10 ** 6]).astype(int))
+
+data19['Value'] = (data19['Value'].replace(r'[KM]+$', '', regex=True).astype(float) *
+                   data19['Value'].str.extract(r'[\d\.]+([KM]+)', expand=False).fillna(1)
+                   .replace(['K', 'M'], [10 ** 3, 10 ** 6]).astype(int))
+
+data_joined = data18.join(data19, how='left', lsuffix="_18", rsuffix="_19")
+# print(list(data_new.columns.values))
+# print(data_new[['Name_19', 'Name_18', 'Age_19', 'Age_18']].head())
 
 
 def check_id(row):
+    print(row.name)
     id18 = row['ID']
 
     id19 = data19.loc[data19['ID'] == id18]
@@ -32,7 +56,7 @@ def check_id(row):
     return False
 
 # Done
-def overall(id =None):
+def overall(id = None):
     def compare_overall(row):
         overall2018 = row['Overall']
 
@@ -113,7 +137,7 @@ def finishing():
     print(DataFrame[['Player Name', 'Finishing Improv.']][
                   DataFrame['Finishing Improv.'] == DataFrame['Finishing Improv.'].max()])
 
-#Done
+# Done
 def oldest():
     """
     Returns the oldest player of each year along with their age and position
@@ -207,7 +231,7 @@ def age():
             row['Overall Difference'] = np.NaN
             return row
 
-    result = pd.DataFrame(data18.apply(link_values, axis=1))
+    result = pd.DataFrame(data18.apply(lambda row: link_values(row), axis=1))
     result = result.dropna(axis='rows')
 
     result = result.sort_values(by=['Overall Difference'], ascending=False)
@@ -338,42 +362,57 @@ def top_10():
 # Done
 def club_change():
     print('Does the change of club affect the value and overall rating of a player?')
+    pd.options.mode.chained_assignment = None  # default='warn'
 
-    def link_values(row):
-
-        value18 = row[['Club', 'Overall', 'Value']]
-
-        new_stats = data19.loc[data19['ID'] == row['ID']]
-        new_stats = new_stats[['Club', 'Overall', 'Value']]
-
-        row = pd.Series({'Name': row['Name']})
-        if new_stats.size > 0:
-            new_stats = new_stats.values[0]
-            row['Club Changed'] = new_stats[0] != value18['Club']
-            row['Overall Increased'] = new_stats[1] > value18['Overall']
-            row['Value Increased'] = new_stats[2] > value18['Value']
-            return row
-        else:
-            row['Club Changed'] = np.NaN
-            row['Overall Increased'] = np.NaN
-            row['Value Increased'] = np.NaN
-            return row
-
-    result = pd.DataFrame(data18.apply(link_values, axis=1))
-
-    result = result.where(result['Club Changed'] == True)
-    result = result.dropna(axis='rows')
-    result = result.sort_values(by=['Name'], ascending=True)
-    print(result)
+    result = data_joined.loc[(data_joined['Club_19'].isnull() != True) & (data_joined['Club_19'] != data_joined['Club_18'])]
+    result['Overall Increased'] = result['Overall_19'] > result['Overall_18']
+    result['Value Increased'] = result['Value_19'] > result['Value_18']
+    print(result[['Name_18', 'Overall Increased', 'Value Increased']].head(), '\n')
 
     increased_overall = result.loc[result['Overall Increased'] == True]
     increased_value = result.loc[result['Value Increased'] == True]
 
     increased_overall_percent = (len(increased_overall.index) / len(result.index)) * 100
     increased_value_percent = (len(increased_value.index) / len(result.index)) * 100
-    #
+
     print(str("%.2f" % increased_overall_percent) + '% of the players who changed club had an increase in overall rating.')
     print(str("%.2f" % increased_value_percent) + '% of the players who changed club had an increase in value.')
+
+    # def link_values(row):
+    #
+    #     value18 = row[['Club', 'Overall', 'Value']]
+    #
+    #     new_stats = data19.loc[data19['ID'] == row['ID']]
+    #     new_stats = new_stats[['Club', 'Overall', 'Value']]
+    #
+    #     row = pd.Series({'Name': row['Name']})
+    #     if new_stats.size > 0:
+    #         new_stats = new_stats.values[0]
+    #         row['Club Changed'] = new_stats[0] != value18['Club']
+    #         row['Overall Increased'] = new_stats[1] > value18['Overall']
+    #         row['Value Increased'] = new_stats[2] > value18['Value']
+    #         return row
+    #     else:
+    #         row['Club Changed'] = np.NaN
+    #         row['Overall Increased'] = np.NaN
+    #         row['Value Increased'] = np.NaN
+    #         return row
+    #
+    # result = pd.DataFrame(data18.apply(link_values, axis=1))
+    #
+    # result = result.where(result['Club Changed'] == True)
+    # result = result.dropna(axis='rows')
+    # result = result.sort_values(by=['Name'], ascending=True)
+    # print(result)
+    #
+    # increased_overall = result.loc[result['Overall Increased'] == True]
+    # increased_value = result.loc[result['Value Increased'] == True]
+    #
+    # increased_overall_percent = (len(increased_overall.index) / len(result.index)) * 100
+    # increased_value_percent = (len(increased_value.index) / len(result.index)) * 100
+    #
+    # print(str("%.2f" % increased_overall_percent) + '% of the players who changed club had an increase in overall rating.')
+    # print(str("%.2f" % increased_value_percent) + '% of the players who changed club had an increase in value.')
 
 # Done
 def retired():
@@ -383,25 +422,10 @@ def retired():
     """
     print('All the players that have retired in 2019.')
 
-    import time
-    start = time.time()
+    result = data_joined.loc[data_joined['Name_19'].isnull()]
+    print(result[['Name_18', 'Age_18', 'Position_18']])
 
-    # Took 13.61 seconds
-    result = data18.apply(check_id, axis=1)
-    result = data18[result].sort_values(by=['Position'], ascending=True)
-    print(result[['Name', 'Age', 'Position']])
+    result = result.groupby('Position_18').mean()
+    print('\nList of all positions with the average age of retired players from the position')
+    print(result['Age_18'])
 
-    result = result.groupby('Position').mean()
-    print('List of all positions with the average age of retired players from the position')
-    print(result['Age'])
-
-    # Took 117.3 seconds
-    # for i in range(MAX):
-    #     new_stats = data19.loc[data19['ID'] == data18.loc[i, 'ID']]
-    #     if new_stats.size == 0:
-    #         result = result.append(data18.iloc[i], ignore_index=True)
-    # print(result)
-
-    end = time.time()
-    print('time: ')
-    print(end - start)
