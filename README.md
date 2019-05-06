@@ -8,7 +8,7 @@ Our source code and results can be viewed in the Jupyter Notebook [file here](ht
 
 ## Contributors 
 
-Stelios Pafitis
-Giorgos Nikiforou
-Michalis Thomas
-Mahan Fathi
+- Stelios Pafitis
+- Giorgos Nikiforou
+- Michalis Thomas
+- Mahan Fathi
